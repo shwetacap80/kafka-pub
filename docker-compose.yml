@@ -1,0 +1,124 @@
+services:
+
+  ### CORE SERVICES GOES HERE  ###
+
+  user:
+    build: user
+    mem_limit: 512m
+    container_name: user
+#    environment:
+#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+#    env_file:
+#      - env/user_docker.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+      - "5005:5005"
+
+  usercomposite:
+    build: userComposite
+    mem_limit: 512m
+    container_name: usercomposite
+    #    environment:
+    #      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    #    env_file:
+    #      - env/user_docker.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8100:8080"
+      - "5006:5006"
+
+    ### EXTERNAL SERVICES GOES HERE  ###
+
+  # MongoDB config for replicaSet mode (supports Mongo transactions)
+  ## To connect to it from MongoDB compass, use following connection string ->
+  ###   mongodb://localhost:27017/?directConnection=true
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"   # client connections
+      - "29092:29092"  # host connections
+      - "9093:9093"   # controller quorum
+    environment:
+      # Unique ID for the broker (must be unique per broker in a cluster)
+      KAFKA_NODE_ID: 1
+
+      # Run both broker and controller
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # Define listeners
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Metadata quorum (KRaft replaces ZooKeeper here)
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # 👇 These are the important ones for single-node KRaft
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Cluster ID (required for KRaft)
+      # Generate once with: `uuidgen` or `kafka-storage.sh random-uuid`
+      CLUSTER_ID: q1Sh-8u1QyGJd6gH-3y7wA
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1" ]
+      interval: 20s      # wait longer between checks
+      timeout: 10s
+      retries: 30        # allow more failures before unhealthy
+      start_period: 40s  # give Kafka some breathing room before first probe
+      #start_period: 40s → health check won’t run for the first 40 seconds.
+      #
+      #total_time = start_period + interval × retries
+      #total_time = 40s + (20s × 10)
+      #total_time = 40s + 200s
+      #total_time = 240 seconds
+      # So Docker will give Kafka up to ~240 seconds to become healthy before marking it unhealthy.
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    mem_limit: 512m
+    ports:
+      - "27017:27017"
+    command: >
+      mongod
+      --replSet rs0
+      --bind_ip_all
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: >
+        mongosh --quiet --eval "
+        try {
+          rs.status().members.find(m => m.stateStr === 'PRIMARY') ? 0 : 1
+        } catch (e) {
+          rs.initiate({_id:'rs0', members:[{_id:0, host:'mongodb:27017'}]});
+          1
+        }"
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  
+volumes:
+  kafka_data:
+  mongo_data:

@@ -1,0 +1,44 @@
+server:
+  port: 8080
+spring :
+  application :
+    name: user
+  mongodb:
+    uri: mongodb://mongodb:27017/recruitment-db
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          replication-factor: 1
+    function:
+      definition: userCommands
+
+logging:
+  level:
+
+    # Your app
+#    com.triaxa: INFO
+
+    # Show only actual Kafka binder activity
+    org.springframework.cloud.stream.binder.kafka: INFO
+
+    # Hide noisy Kafka internals
+    org.apache.kafka.common.config.AbstractConfig: WARN
+    org.apache.kafka.common.metrics: WARN
+    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: WARN
+    org.apache.kafka.clients.admin.AdminClientConfig: WARN
+    org.apache.kafka.clients.NetworkClient: WARN
+    org.apache.kafka.clients.Metadata: WARN
+    org.apache.kafka.clients.consumer.internals: WARN
+    org.apache.kafka.common.telemetry: WARN
+
+    # Hide Spring Integration spam
+    org.springframework.integration: WARN
+
+    # Hide Mongo driver spam
+    org.mongodb.driver: WARN
+
+    # Optional: keep ReactiveMongoTemplate query logs
+    org.springframework.data.mongodb.core.ReactiveMongoTemplate: DEBUG
