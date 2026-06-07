@@ -6,8 +6,8 @@ services:
     build: user
     mem_limit: 512m
     container_name: user
-#    environment:
-#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 #    env_file:
 #      - env/user_docker.env
     depends_on:
@@ -23,8 +23,8 @@ services:
     build: userComposite
     mem_limit: 512m
     container_name: usercomposite
-    #    environment:
-    #      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
     #    env_file:
     #      - env/user_docker.env
     depends_on:

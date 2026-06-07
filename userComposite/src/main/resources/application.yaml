@@ -34,4 +34,7 @@ logging:
 
     # Hide Spring Integration spam
     org.springframework.integration: WARN
+user:
+  service:
+    base-url: http://user:8080
 

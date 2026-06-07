@@ -6,10 +6,10 @@ import com.example.userComposite.helper.KafkaBindings;
 import com.example.userComposite.helper.KafkaHelper;
 import com.example.userComposite.utils.EventTypes;
 import com.example.userComposite.utils.TopicNames;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,16 +17,19 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/user")
+@RequestMapping("/api/v1/composite/user")
 public class UserController {
     private final KafkaHelper kafkaHelper;
-    private final ObjectMapper objectMapper;
+    private final WebClient webClient;
+
+    @Value("${user.service.base-url}")
+    private String userServiceUrl;
 
     public UserController(
                           KafkaHelper kafkaHelper,
-                          ObjectMapper objectMapper){
+                          WebClient webClient){
         this.kafkaHelper = kafkaHelper;
-        this.objectMapper = objectMapper;
+        this.webClient = webClient;
 
     }
 
@@ -51,6 +54,15 @@ public Mono<Map<String, String>> createUser(
                 );
     return Mono.just(Map.of(eventId,user.getName()));
 }
+
+    @GetMapping
+    public Flux<User> getUsers(){
+        return webClient.get()
+                .uri(userServiceUrl + "/api/v1/user")
+                .retrieve()
+                .bodyToFlux(User.class);
+    }
+
 
 //    private String writeJson(Object obj) {
 //        try {
