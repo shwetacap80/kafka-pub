@@ -9,7 +9,10 @@ import com.example.userComposite.user.persistences.OutboxEvent;
 import com.example.userComposite.utils.EventTypes;
 import com.example.userComposite.utils.TopicNames;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -44,7 +47,17 @@ public class UserController {
     }
 
 @PostMapping
-public Mono<Map<String, String>> createUser(
+@Operation(
+        summary = "Create User",
+        description = "User Service"
+)
+@ApiResponses(value = {
+        @ApiResponse(
+                responseCode = "202",
+                description = "User Created"
+        )
+})
+public Mono<ResponseEntity<Map<String, String>>> createUser(
         @RequestBody User user) {
 
     String eventId = UUID.randomUUID().toString();
@@ -70,14 +83,25 @@ public Mono<Map<String, String>> createUser(
                     .build();
 
     return outboxRepository.save(outboxEvent)
-            .thenReturn(Map.of(
-                    "eventId", eventId,
-                    "userName", user.getName()
+            .map(saved -> ResponseEntity.accepted().body(
+                    Map.of(
+                            "eventId", eventId,
+                            "userName", user.getName()
+                    )
             ));
 }
 
     @GetMapping
-    @Operation(hidden = true)
+    @Operation(
+            summary = "All User List",
+            description = "User List"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Fetch All Users successfully"
+            )
+    })
     public Flux<User> getUsers(){
         return webClient.get()
                 .uri(userServiceUrl + "/api/v1/user")
