@@ -1,6 +1,8 @@
 spring:
   application:
     name: userComposite
+  mongodb:
+    uri: mongodb://mongodb:27017/recruitment-db
   cloud:
     stream:
       kafka:
